@@ -1,4 +1,21 @@
 #!/bin/bash
+IS_DEBUG=""
+
+########################################################################################################################
+# PARAMETER HANDLING
+########################################################################################################################
+for i in "$@"
+do
+    case $i in
+        --debug)
+            IS_DEBUG="--debug"
+        ;;
+        *)
+            # unknown option
+        ;;
+    esac
+    shift
+done
 
 gitlab_package_name="sameersbn/gitlab"
 redis_package_name="redis"
@@ -24,5 +41,5 @@ do
     redis_package_fqn=$redis_package_name:$redis_version
 
     echo "building $gitlab_package_fqn ("$gitlab_size"MB) with $redis_package_fqn ("$redis_size"MB)"
-    ./build.sh --gitlab-fqn=$gitlab_package_fqn --gitlab-download-size=$gitlab_size --redis-fqn=$redis_package_fqn --redis-download-size=$redis_size --all-in-one
+    ./build.sh --gitlab-fqn=$gitlab_package_fqn --gitlab-download-size=$gitlab_size --redis-fqn=$redis_package_fqn --redis-download-size=$redis_size "$IS_DEBUG"
 done
