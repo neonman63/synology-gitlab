@@ -61,6 +61,7 @@ The first docker container boot up - after installation/update - takes some minu
 | Old           | 10.1.1        | 10.1.4      | ok                 |
 | New           | 10.1.4        | 10.2.5      | ok                 |
 | New           | 10.2.5        | 10.3.x      | DB Migrate fail    |
+| New           | 10.2.5        | 10.4.x      | DB Migrate fail    |
 
 ```
 Stock: Package directly installed from Synology		
