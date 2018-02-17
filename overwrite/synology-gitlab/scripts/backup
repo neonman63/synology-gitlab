@@ -16,6 +16,7 @@ MYSQL10_BIN_DIR="$(dirname -- "$MYSQL10_BIN")"
 gitlab_database=$DB_NAME
 gitlab_database_user=$DB_USER
 gitlab_database_password=$DB_PASS
+postgresql=0
 maria_db_root_password=
 
 ########################################################################################################################
@@ -36,6 +37,7 @@ display_help() {
     echo "   --gitlab-dir               GitLab installation directory. default: $GITLAB_DIR"
     echo "   --gitlab-database          GitLab database name. default: $gitlab_database"
     echo "   --gitlab-database-user     GitLab database username. default: $gitlab_database_user"
+    echo "   --postgresql               compatibility"
     echo
     # echo some stuff here for the -a or --add-options
     exit 1
@@ -74,7 +76,9 @@ while [ $# -ge 1 ]; do
         --gitlab-database-user)
             gitlab_database_user="$2"; shift 2
         ;;
-
+        --postgresql)
+            postgresql=1; shift
+        ;;
         -h | --help)
             display_help  # Call your function
             exit 0
@@ -152,19 +156,24 @@ echo "compress gitlab folder"
 tar cpfz $BACKUP_TARGET_DIR"/gitlab.tar.gz" --directory=$GITLAB_DIR .
 
 echo "backup gitlab database"
-echo "GRANT USAGE ON *.* TO '$gitlab_database_user'@'localhost' IDENTIFIED BY 'password';" > $BACKUP_TARGET_DIR"/database.sql"
-echo "GRANT USAGE ON *.* TO '$gitlab_database_user'@'%' IDENTIFIED BY 'password';" >> $BACKUP_TARGET_DIR"/database.sql"
-echo "DROP USER '$gitlab_database_user'@'%'; DROP USER '$gitlab_database_user'@'localhost';" >> $BACKUP_TARGET_DIR"/database.sql"
+compatibility=""
+if [ $postgresql == 0 ]; then
+  echo "GRANT USAGE ON *.* TO '$gitlab_database_user'@'localhost' IDENTIFIED BY 'password';" > $BACKUP_TARGET_DIR"/database.sql"
+  echo "GRANT USAGE ON *.* TO '$gitlab_database_user'@'%' IDENTIFIED BY 'password';" >> $BACKUP_TARGET_DIR"/database.sql"
+  echo "DROP USER '$gitlab_database_user'@'%'; DROP USER '$gitlab_database_user'@'localhost';" >> $BACKUP_TARGET_DIR"/database.sql"
 
-# add create & grant user sql queries
-$MYSQL10_BIN_DIR/mysql -uroot -p$maria_db_root_password -e"select concat('show grants for ','\'',user,'\'@\'',host,'\'') from mysql.user where user='$gitlab_database_user'" > user_list_with_header.txt
-sed '1d' user_list_with_header.txt > ./user.txt
-while read user; do  $MYSQL10_BIN_DIR/mysql -uroot -p$maria_db_root_password -e"$user" > user_grant.txt; sed '1d' user_grant.txt >> user_privileges.txt; echo "flush privileges" >> user_privileges.txt; done < user.txt
-awk '{print $0";"}'  user_privileges.txt >> $BACKUP_TARGET_DIR"/database.sql"
-rm user.txt user_list_with_header.txt user_grant.txt user_privileges.txt
-
+  # add create & grant user sql queries
+  $MYSQL10_BIN_DIR/mysql -uroot -p$maria_db_root_password -e"select concat('show grants for ','\'',user,'\'@\'',host,'\'') from mysql.user where user='$gitlab_database_user'" > user_list_with_header.txt
+  sed '1d' user_list_with_header.txt > ./user.txt
+  while read user; do  $MYSQL10_BIN_DIR/mysql -uroot -p$maria_db_root_password -e"$user" > user_grant.txt; sed '1d' user_grant.txt >> user_privileges.txt; echo "flush privileges" >> user_privileges.txt; done < user.txt
+  awk '{print $0";"}'  user_privileges.txt >> $BACKUP_TARGET_DIR"/database.sql"
+  rm user.txt user_list_with_header.txt user_grant.txt user_privileges.txt
+else
+  compatibility="--compatible=postgresql"
+fi
 # dump database
-$MYSQL10_BIN_DIR/mysqldump -uroot -p$maria_db_root_password -B $gitlab_database >> $BACKUP_TARGET_DIR/"database.sql"
+$MYSQL10_BIN_DIR/mysqldump -uroot -p$maria_db_root_password $compatibility $gitlab_database >> $BACKUP_TARGET_DIR/"database.sql"
+
 
 # write a little manual so anybody can restore the backup without studying this backup script
 echo "How to restore:" >> $BACKUP_TARGET_DIR"/README"
@@ -173,8 +182,12 @@ echo "2) import the *.config files to your stopped Docker Container (synology_gi
 echo "3) extract content of gitlab.tar.gz: tar xpfz gitlab.tar.gz -C $GITLAB_DIR" >> $BACKUP_TARGET_DIR"/README"
 echo "4) restore db: mysql -u root -p < database.sql" >> $BACKUP_TARGET_DIR"/README"
 
+suffx=""
+if [ $postgresql == 1 ]; then
+  suffx="postgresql-"
+fi
 echo "compress everything to a backup file"
-tar cfz $BACKUP_TARGET_DIR/$current_timestamp"-gitlab-"$gitlab_package_version".tar.gz" --remove-files --directory="$BACKUP_TARGET_DIR" README gitlab.tar.gz database.sql $config_file_list
+tar cfz $BACKUP_TARGET_DIR/$current_timestamp"-gitlab-"$suffx$gitlab_package_version".tar.gz" --remove-files --directory="$BACKUP_TARGET_DIR" README gitlab.tar.gz database.sql $config_file_list
 
 ########################################################################################################################
 # FINISH
