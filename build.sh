@@ -156,7 +156,7 @@ get_latest_version_number_from_dockerhub() {
 ########################################################################################################################
 # DEFAULT PARAMETERS
 ########################################################################################################################
-default_gitlab_target_package_fqn="sameersbn/gitlab:13.3.4"
+default_gitlab_target_package_fqn="sameersbn/gitlab:13.8.2"
 default_gitlab_target_package_download_size=1280
 
 # let fetch latest tag from dockerhub and make it default
@@ -166,7 +166,7 @@ if [ "${latest_gitlab_target_package_version}" != "-1" ]; then
   default_gitlab_target_package_fqn="${gitlab_target_package_name}:${latest_gitlab_target_package_version}"
 fi
 
-default_postgresql_target_package_fqn="sameersbn/postgresql:11-20200524"
+default_postgresql_target_package_fqn="sameersbn/postgresql:12-20200524"
 default_postgresql_target_package_download_size=100
 
 default_redis_target_package_fqn="redis:5.0.9"
@@ -274,7 +274,7 @@ redis_target_package_name_escaped=$(echo "${redis_target_package_name}" | tr '/'
 ########################################################################################################################
 # VARIABLES
 ########################################################################################################################
-base_package_url="https://archive.synology.com/download/Package/spk/Docker-GitLab/11.11.8-0055/Docker-GitLab-x64-11.11.8-0055.spk"
+base_package_url="https://global.download.synology.com/download/Package/spk/Docker-GitLab/11.11.8-0055/Docker-GitLab-x64-11.11.8-0055.spk"
 base_package_filename="${base_package_url##*/}"
 base_package_name="${base_package_filename%.*}"
 base_package_version="$( echo "${base_package_name}" | grep -P "([0-9]{1,2}[.][0-9]{1,2}[.]{0,1}[0-9]{0,2})" -o )"
